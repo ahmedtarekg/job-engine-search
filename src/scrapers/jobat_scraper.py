@@ -1,4 +1,4 @@
-"""Jobat.be scraper."""
+"""Jobat.be scraper (requests + BS4)."""
 
 import logging
 import os
@@ -11,14 +11,14 @@ from src.scrapers.base_scraper import BaseScraper
 
 logger = logging.getLogger(__name__)
 
-_BASE_URL = "https://www.jobat.be/en/jobs"
+_BASE_URL = "https://www.jobat.be/en/jobs/results"
 
 
 class JobatScraper(BaseScraper):
     source_name = "jobat"
 
     def _scrape_term(self, term: str) -> list[dict[str, Any]]:
-        params = {"keywords": term, "region": "ghent", "radius": 50}
+        params = {"keywords": term}
         resp = self._get_with_retry(_BASE_URL, params=params)
         if resp is None:
             return []
@@ -27,15 +27,11 @@ class JobatScraper(BaseScraper):
 
     def _parse_jobs(self, soup) -> list[dict[str, Any]]:
         jobs = []
-        cards = (
-            soup.select("article.job-card")
-            or soup.select("li.search-result-item")
-            or soup.select("div.job-search-item")
-        )
+        cards = soup.select("div.jobResults-card")
 
         for card in cards:
             try:
-                title_el = card.select_one("h2 a, h3 a, a.job-title")
+                title_el = card.select_one("h2.jobTitle a")
                 if not title_el:
                     continue
                 title = title_el.get_text(strip=True)
@@ -43,25 +39,21 @@ class JobatScraper(BaseScraper):
                 if not href.startswith("http"):
                     href = "https://www.jobat.be" + href
 
-                company_el = card.select_one("span.company-name, a.company-name, div.company")
+                company_el = card.select_one("li.jobCard-company")
                 company = company_el.get_text(strip=True) if company_el else ""
 
-                loc_el = card.select_one("span.location, div.location, li.location")
+                loc_el = card.select_one("li.jobCard-location")
                 location = loc_el.get_text(strip=True) if loc_el else "Belgium"
 
-                desc_el = card.select_one("div.description, p.description, div.job-description")
-                description = desc_el.get_text(strip=True) if desc_el else ""
-
-                jobs.append(
-                    {
-                        "title": title,
-                        "company": company,
-                        "location_raw": location,
-                        "url": href,
-                        "description": description,
-                    }
-                )
+                jobs.append({
+                    "title": title,
+                    "company": company,
+                    "location_raw": location,
+                    "url": href,
+                    "description": "",
+                })
             except Exception as exc:
                 logger.debug(f"[jobat] Parse error: {exc}")
 
+        logger.debug(f"[jobat] {len(jobs)} jobs parsed")
         return jobs

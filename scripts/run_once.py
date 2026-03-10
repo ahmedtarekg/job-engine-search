@@ -14,7 +14,7 @@ logging.basicConfig(
 
 from src.pipeline.job_pipeline import run_pipeline, SCRAPERS
 from src.scrapers.indeed_scraper import IndeedScraper
-from src.scrapers.stepstone_scraper import StepStoneScraper
+from src.scrapers.adzuna_scraper import AdzunaScraper
 from src.scrapers.jobat_scraper import JobatScraper
 from src.scrapers.vdab_scraper import VdabScraper
 from src.scrapers.eurojobs_scraper import EuroJobsScraper
@@ -23,7 +23,7 @@ from src.scrapers.linkedin_scraper import LinkedInScraper
 
 SCRAPER_MAP = {
     "indeed": IndeedScraper,
-    "stepstone": StepStoneScraper,
+    "adzuna": AdzunaScraper,
     "jobat": JobatScraper,
     "vdab": VdabScraper,
     "eurojobs": EuroJobsScraper,

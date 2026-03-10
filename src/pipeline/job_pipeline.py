@@ -14,7 +14,7 @@ from src.ai.relevance_scorer import score_jobs
 from src.database.db_manager import ensure_db, insert_job, job_exists, update_last_seen, update_score
 from src.location.geo_filter import is_within_radius
 from src.scrapers.indeed_scraper import IndeedScraper
-from src.scrapers.stepstone_scraper import StepStoneScraper
+from src.scrapers.adzuna_scraper import AdzunaScraper
 from src.scrapers.jobat_scraper import JobatScraper
 from src.scrapers.vdab_scraper import VdabScraper
 from src.scrapers.eurojobs_scraper import EuroJobsScraper
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 SCRAPERS = [
     IndeedScraper,
-    StepStoneScraper,
+    AdzunaScraper,
     JobatScraper,
     VdabScraper,
     EuroJobsScraper,

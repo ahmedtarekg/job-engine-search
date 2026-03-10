@@ -65,7 +65,10 @@ class LinkedInScraper(BaseScraper):
             "f_WT": "2",  # On-site
         }
         url = f"{_SEARCH_URL}?{urllib.parse.urlencode(params)}"
-        page.goto(url, timeout=30000)
+        try:
+            page.goto(url, timeout=45000)
+        except Exception:
+            pass
         page.wait_for_timeout(3000)
 
         # Scroll to load more jobs
