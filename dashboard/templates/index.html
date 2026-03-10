@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Job Engine Search — {{ stats.total }} jobs{% endblock %}
+
+{% block content %}
+
+<!-- Stats bar -->
+<div class="stats-bar">
+    <div class="stat"><span class="stat-num">{{ stats.total }}</span><span class="stat-label">Total</span></div>
+    <div class="stat"><span class="stat-num">{{ stats.scored }}</span><span class="stat-label">Scored</span></div>
+    <div class="stat"><span class="stat-num">{{ stats.by_status.get('new', 0) }}</span><span class="stat-label">New</span></div>
+    <div class="stat"><span class="stat-num">{{ stats.by_status.get('interested', 0) }}</span><span class="stat-label">Interested</span></div>
+    <div class="stat"><span class="stat-num">{{ stats.by_status.get('applied', 0) }}</span><span class="stat-label">Applied</span></div>
+    <div class="stat"><span class="stat-num">{{ stats.filtered_out }}</span><span class="stat-label">Filtered Out</span></div>
+</div>
+
+<!-- Filters -->
+<form class="filters" method="get" action="/">
+    <div class="filter-group">
+        <label>Min Score</label>
+        <input type="range" name="min_score" min="0" max="100" step="5"
+               value="{{ filters.min_score }}" oninput="this.nextElementSibling.textContent=this.value">
+        <span>{{ filters.min_score }}</span>
+    </div>
+    <div class="filter-group">
+        <label>Last (days)</label>
+        <input type="number" name="days" placeholder="all" value="{{ filters.days }}" min="1" max="365">
+    </div>
+    <div class="filter-group">
+        <label>Company</label>
+        <input type="text" name="company" placeholder="any" value="{{ filters.company }}">
+    </div>
+    <div class="filter-group">
+        <label>Category</label>
+        <select name="role_category">
+            <option value="">All</option>
+            {% for cat in role_categories %}
+            <option value="{{ cat }}" {% if filters.role_category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Status</label>
+        <div class="checkboxes">
+            {% for s in ['new', 'interested', 'applied', 'dismissed'] %}
+            <label class="cb-label">
+                <input type="checkbox" name="status" value="{{ s }}"
+                    {% if s in filters.statuses %}checked{% endif %}>
+                {{ s }}
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+    <button type="submit" class="filter-btn">Apply</button>
+    <a href="/" class="filter-btn filter-btn-reset">Reset</a>
+</form>
+
+<!-- Pipeline status message -->
+<div id="pipeline-msg" style="display:none;" class="pipeline-msg"></div>
+
+<!-- Jobs table -->
+{% if jobs %}
+<div class="table-wrap">
+<table>
+    <thead>
+        <tr>
+            <th>Score</th>
+            <th>Title</th>
+            <th>Company</th>
+            <th>Location</th>
+            <th>Category</th>
+            <th>Found</th>
+            <th>Source</th>
+            <th>Skills</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for job in jobs %}
+        <tr class="job-row {% if job.status == 'dismissed' %}dismissed{% endif %}">
+            <td>
+                <span class="badge {{ job.badge_class }}"
+                      title="{{ job.score_reason or 'No reason provided' }}">
+                    {{ job.relevance_score if job.relevance_score is not none else '?' }}
+                </span>
+            </td>
+            <td class="title-cell">
+                <a href="{{ job.url }}" target="_blank" rel="noopener">{{ job.title }}</a>
+            </td>
+            <td>{{ job.company or '—' }}</td>
+            <td class="loc-cell">
+                {{ job.location_raw or '—' }}
+                {% if job.distance_km is not none %}
+                <span class="dist-badge">{{ job.distance_km }} km</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if job.role_category %}
+                <span class="cat-tag">{{ job.role_category }}</span>
+                {% else %}—{% endif %}
+            </td>
+            <td class="date-cell">{{ (job.date_first_seen or '')[:10] }}</td>
+            <td><span class="source-tag source-{{ job.source }}">{{ job.source }}</span></td>
+            <td class="skills-cell">
+                {% for skill in job.matched_skills[:3] %}
+                <span class="skill-tag">{{ skill }}</span>
+                {% endfor %}
+            </td>
+            <td>
+                <select class="status-select"
+                        data-job-id="{{ job.job_id }}"
+                        onchange="updateStatus(this)">
+                    {% for s in ['new', 'interested', 'applied', 'dismissed'] %}
+                    <option value="{{ s }}" {% if job.status == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td>
+                <a href="{{ job.url }}" target="_blank" rel="noopener" class="view-btn">View</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state">
+    <p>No jobs found. Adjust your filters or click <strong>Run Now</strong> to fetch jobs.</p>
+</div>
+{% endif %}
+
+{% endblock %}
