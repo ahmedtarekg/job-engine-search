@@ -89,12 +89,7 @@
                 <a href="{{ job.url }}" target="_blank" rel="noopener">{{ job.title }}</a>
             </td>
             <td>{{ job.company or '—' }}</td>
-            <td class="loc-cell">
-                {{ job.location_raw or '—' }}
-                {% if job.distance_km is not none %}
-                <span class="dist-badge">{{ job.distance_km }} km</span>
-                {% endif %}
-            </td>
+            <td class="loc-cell">{{ job.location_raw or '—' }}</td>
             <td>
                 {% if job.role_category %}
                 <span class="cat-tag">{{ job.role_category }}</span>

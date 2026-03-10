@@ -9,11 +9,6 @@ load_dotenv()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL = "claude-sonnet-4-6"
 
-# ── Location ─────────────────────────────────────────────────────────────────
-GHENT_LAT = 51.0543
-GHENT_LON = 3.7174
-SEARCH_RADIUS_KM = 100
-
 # ── Database ─────────────────────────────────────────────────────────────────
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "jobs.db")
 
@@ -67,6 +62,6 @@ Ahmed is a PhD Materials Scientist & Engineer specializing in:
 - Biosensors and bioelectronics
 - Flexible and printed electronics
 
-He is looking for INDUSTRY roles (not academia or pure R&D institutes) within 100 km of Ghent, Belgium.
+He is looking for INDUSTRY roles (not academia or pure R&D institutes) anywhere in Belgium.
 He prefers English-language positions.
 """

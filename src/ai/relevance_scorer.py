@@ -25,12 +25,18 @@ Scoring rubric:
 - 30-49:  Weak but worth reviewing (adjacent field, transferable skills)
 - 0-29:   Not a match → set exclude=true
 
-Auto-exclude (set exclude=true) if:
-- University, research institute, or purely academic role
-- "Research Scientist" at university/institute
-- Purely mechanical engineering with no materials science component
+CRITICAL RULE: If the job description contains NO mention of materials, chemistry, coatings, thin films,
+electrochemistry, polymers, semiconductors, surface science, or related physical/chemical sciences,
+score it 0–15 and set exclude=true. Score=50 requires at minimum some materials/chemistry relevance.
+
+Hard exclude triggers (set exclude=true, score ≤ 20):
+- Software engineering, web development, IT, cloud, DevOps, cybersecurity, data engineering
+- Purely mechanical engineering or civil/structural engineering with no materials science component
+- Finance, HR, legal, marketing, sales (non-technical)
+- Medical/clinical/pharma roles with no materials science or surface science overlap
+- University, research institute, or purely academic role (postdoc, professor, research assistant)
 - Job description is not in English (unless role itself is English-language)
-- Role requires only medical/pharma background with no materials overlap
+- Job title contains only: developer, programmer, architect (software), accountant, nurse, doctor
 
 Return ONLY valid JSON — no markdown, no explanation."""
 

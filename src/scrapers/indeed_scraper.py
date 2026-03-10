@@ -57,7 +57,7 @@ class IndeedScraper(BaseScraper):
         return []  # Not used; scrape() overrides
 
     def _scrape_term_with_page(self, page, term: str) -> list[dict[str, Any]]:
-        params = urllib.parse.urlencode({"q": term, "l": "Ghent", "radius": "100"})
+        params = urllib.parse.urlencode({"q": term, "l": "Belgium"})
         url = f"{_BASE_URL}?{params}"
         try:
             page.goto(url, timeout=45000)

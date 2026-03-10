@@ -1,0 +1,62 @@
+# Belgian company career pages for direct scraping
+# Grouped by relevance to Ahmed's profile (semiconductors, thin films, materials, electrochemistry)
+
+# Direct match — semiconductors, thin films, OECTs, coatings
+- name: imec
+  url: https://www.imec-int.com/en/careers/job-openings
+- name: Agfa-Gevaert
+  url: https://careers.agfa.com/search/?q=&locationsearch=Belgium
+- name: Melexis
+  url: https://jobs.melexis.com/en
+- name: Barco
+  url: https://www.barco.com/en/about/careers
+- name: Xenics
+  url: https://www.xenics.com/about/careers
+
+# Strong match — materials, electrochemistry, coatings, polymers
+- name: Umicore
+  url: https://careers.umicore.com/en/vacancies
+- name: Bekaert
+  url: https://www.bekaert.com/en/careers/job-opportunities
+- name: Syensqo
+  url: https://careers.syensqo.com/en/jobs
+- name: Nitto Belgium
+  url: https://www.nitto.com/eu/en/careers/
+- name: Recticel
+  url: https://www.recticel.com/en/careers/job-openings
+- name: Borealis
+  url: https://www.borealisgroup.com/careers
+- name: Prayon
+  url: https://www.prayon.com/en/company/careers/
+- name: Materialise
+  url: https://www.materialise.com/en/careers/vacancies
+
+# Good match — specialty chemicals, surface science, process engineering
+- name: IBA
+  url: https://www.iba-worldwide.com/careers
+- name: John Cockerill
+  url: https://careers.john-cockerill.com/en
+- name: Arkema Belgium
+  url: https://www.arkema.com/global/en/careers/
+- name: Evonik Belgium
+  url: https://careers.evonik.com
+- name: PPG Belgium
+  url: https://ppg.com/en-US/careers
+- name: Henkel Belgium
+  url: https://www.henkel.be/careers
+- name: Atlas Copco Belgium
+  url: https://www.atlascopco.com/en-be/careers
+- name: 3M Belgium
+  url: https://www.3m.com/3M/en_US/careers-us/
+
+# Research/industrial institutes (non-academic, paid industry roles)
+- name: VITO
+  url: https://www.vito.be/en/jobs
+- name: Sirris
+  url: https://www.sirris.be/en/jobs
+- name: Flanders Make
+  url: https://www.flandersmake.be/en/jobs
+
+# Startups/scale-ups relevant to flexible electronics, sensors, energy
+- name: Elsyca
+  url: https://www.elsyca.com/careers

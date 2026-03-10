@@ -8,7 +8,6 @@ from typing import Any
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from src.scrapers.base_scraper import BaseScraper
-from config.settings import GHENT_LAT, GHENT_LON
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +22,6 @@ class AdzunaScraper(BaseScraper):
             "q": term,
             "loc": "0",
             "countrycode": "BE",
-            "distance": "100",
-            "centre": f"{GHENT_LAT},{GHENT_LON}",
         }
         resp = self._get_with_retry(_BASE_URL, params=params)
         if resp is None:

@@ -1,4 +1,4 @@
-"""Full orchestration pipeline: expand → scrape → filter → score → store."""
+"""Full orchestration pipeline: expand → scrape → fetch descriptions → score → store."""
 
 import json
 import logging
@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from src.ai.title_expander import expand_job_titles
 from src.ai.relevance_scorer import score_jobs
 from src.database.db_manager import ensure_db, insert_job, job_exists, update_last_seen, update_score
-from src.location.geo_filter import is_within_radius
+from src.scrapers.description_fetcher import fetch_descriptions
 from src.scrapers.indeed_scraper import IndeedScraper
 from src.scrapers.adzuna_scraper import AdzunaScraper
 from src.scrapers.jobat_scraper import JobatScraper
@@ -20,6 +20,7 @@ from src.scrapers.vdab_scraper import VdabScraper
 from src.scrapers.eurojobs_scraper import EuroJobsScraper
 from src.scrapers.monster_scraper import MonsterScraper
 from src.scrapers.linkedin_scraper import LinkedInScraper
+from src.scrapers.company_scraper import CompanyScraper
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,18 @@ SCRAPERS = [
     EuroJobsScraper,
     MonsterScraper,
     LinkedInScraper,
+    CompanyScraper,
 ]
+
+
+def _run_geo_migration() -> None:
+    """Re-enable jobs that were filtered out by the old geolocation filter."""
+    from src.database.db_manager import _conn
+    with _conn() as conn:
+        cursor = conn.execute("UPDATE jobs SET is_filtered_out = 0 WHERE is_filtered_out = 1")
+        conn.commit()
+        if cursor.rowcount:
+            logger.info(f"[migration] Re-enabled {cursor.rowcount} previously geo-filtered jobs.")
 
 
 def run_pipeline(
@@ -49,14 +61,15 @@ def run_pipeline(
         Summary dict with counts and any errors encountered.
     """
     ensure_db()
+    _run_geo_migration()
+
     summary: dict[str, Any] = {
         "started_at": datetime.now(timezone.utc).isoformat(),
         "titles_generated": 0,
         "raw_scraped": 0,
         "new_jobs": 0,
         "known_jobs": 0,
-        "in_radius": 0,
-        "out_of_radius": 0,
+        "descriptions_fetched": 0,
         "scored": 0,
         "inserted": 0,
         "errors": [],
@@ -69,7 +82,7 @@ def run_pipeline(
         if max_titles:
             titles = titles[:max_titles]
         summary["titles_generated"] = len(titles)
-        logger.info(f"  → {len(titles)} titles to search.")
+        logger.info(f"  -> {len(titles)} titles to search.")
     except Exception as exc:
         logger.error(f"Title expansion error: {exc}")
         summary["errors"].append(f"title_expansion: {exc}")
@@ -87,7 +100,7 @@ def run_pipeline(
             logger.info(f"  Scraping: {scraper_name}")
             scraper = ScraperClass()
             jobs = scraper.scrape(titles)
-            logger.info(f"    → {len(jobs)} jobs from {scraper_name}")
+            logger.info(f"    -> {len(jobs)} jobs from {scraper_name}")
             for job in jobs:
                 all_raw[job["job_id"]] = job
         except Exception as exc:
@@ -108,58 +121,52 @@ def run_pipeline(
             new_jobs.append(job)
 
     summary["new_jobs"] = len(new_jobs)
-    logger.info(f"  → {len(new_jobs)} new, {summary['known_jobs']} already known")
+    logger.info(f"  -> {len(new_jobs)} new, {summary['known_jobs']} already known")
 
-    # ── 4. Geocode + distance filter ─────────────────────────────────────────
-    logger.info("Step 4: Geocoding and filtering by distance...")
-    in_radius_jobs: list[dict] = []
-    out_of_radius_jobs: list[dict] = []
+    if not new_jobs:
+        summary["finished_at"] = datetime.now(timezone.utc).isoformat()
+        return summary
 
-    for job in new_jobs:
-        loc = job.get("location_raw") or ""
-        within, lat, lon, dist = is_within_radius(loc)
-        job["location_lat"] = lat
-        job["location_lon"] = lon
-        job["distance_km"] = dist
-        job["is_filtered_out"] = 0 if within else 1
-        if within:
-            in_radius_jobs.append(job)
-        else:
-            out_of_radius_jobs.append(job)
+    # ── 4. Fetch full descriptions via Playwright ────────────────────────────
+    logger.info("Step 4: Fetching full job descriptions...")
+    try:
+        new_jobs = fetch_descriptions(new_jobs)
+        descriptions_fetched = sum(
+            1 for j in new_jobs if (j.get("description") or "").strip()
+        )
+        summary["descriptions_fetched"] = descriptions_fetched
+        logger.info(f"  -> {descriptions_fetched} jobs now have descriptions")
+    except Exception as exc:
+        logger.error(f"Description fetch error: {exc}")
+        summary["errors"].append(f"description_fetch: {exc}")
 
-    summary["in_radius"] = len(in_radius_jobs)
-    summary["out_of_radius"] = len(out_of_radius_jobs)
-    logger.info(f"  → {len(in_radius_jobs)} in-radius, {len(out_of_radius_jobs)} out-of-radius")
-
-    # ── 5. Score in-radius jobs with Claude ──────────────────────────────────
+    # ── 5. Score all new jobs with Claude ────────────────────────────────────
     logger.info("Step 5: Scoring jobs with Claude...")
     scored_map: dict[str, dict] = {}
 
-    if in_radius_jobs:
-        try:
-            scoring_results = score_jobs(in_radius_jobs)
-            for result in scoring_results:
-                scored_map[result["job_id"]] = result
-            summary["scored"] = len(scoring_results)
-            logger.info(f"  → Scored {len(scoring_results)} jobs")
-        except Exception as exc:
-            logger.error(f"Scoring error: {exc}")
-            summary["errors"].append(f"scoring: {exc}")
+    try:
+        scoring_results = score_jobs(new_jobs)
+        for result in scoring_results:
+            scored_map[result["job_id"]] = result
+        summary["scored"] = len(scoring_results)
+        logger.info(f"  -> Scored {len(scoring_results)} jobs")
+    except Exception as exc:
+        logger.error(f"Scoring error: {exc}")
+        summary["errors"].append(f"scoring: {exc}")
 
     # ── 6. Insert all into DB ─────────────────────────────────────────────────
     logger.info("Step 6: Inserting into database...")
     inserted = 0
 
-    all_to_insert = in_radius_jobs + out_of_radius_jobs
-    for job in all_to_insert:
+    for job in new_jobs:
+        job.setdefault("is_filtered_out", 0)
         score_data = scored_map.get(job["job_id"])
         if score_data:
             job["relevance_score"] = score_data.get("score")
             job["matched_skills"] = json.dumps(score_data.get("matched_skills", []))
             job["score_reason"] = score_data.get("score_reason")
             job["role_category"] = score_data.get("role_category")
-            # If Claude says exclude, mark as filtered
-            if score_data.get("exclude") and job["is_filtered_out"] == 0:
+            if score_data.get("exclude"):
                 job["is_filtered_out"] = 1
 
         if insert_job(job):
@@ -170,7 +177,7 @@ def run_pipeline(
 
     logger.info(
         f"\nPipeline complete: {inserted} new jobs inserted, "
-        f"{summary['scored']} scored, {summary['out_of_radius']} out-of-radius stored."
+        f"{summary['scored']} scored."
     )
     return summary
 
@@ -180,7 +187,7 @@ if __name__ == "__main__":
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
-    result = run_pipeline(max_titles=5, use_scrapers=[IndeedScraper, StepStoneScraper])
+    result = run_pipeline(max_titles=5, use_scrapers=[IndeedScraper, AdzunaScraper])
     print("\n=== Pipeline Summary ===")
     for k, v in result.items():
         print(f"  {k}: {v}")
