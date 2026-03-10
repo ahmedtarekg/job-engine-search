@@ -14,10 +14,16 @@ Job Engine Search is a job search engine and data analysis platform powered by C
 
 ## Git Workflow
 
-Always commit and push after meaningful changes to keep the GitHub repo in sync:
+**Commit and push to GitHub regularly throughout all work** — after every meaningful change, completed feature, bug fix, or milestone. This ensures we never lose progress and can always revert to a working state.
+
+Rules:
+- Commit frequently, not just at the end of a session
+- Write clean, descriptive commit messages that explain *what* changed and *why*
+- Always push after committing so GitHub stays in sync with local work
+- Prefer specific file staging (`git add <file>`) over `git add -A`
 
 ```bash
 git add <files>
-git commit -m "description"
+git commit -m "short description of what changed and why"
 git push
 ```
